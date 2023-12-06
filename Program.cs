@@ -16,4 +16,5 @@ Console.WriteLine("Advent of Code 2023!");
 // dayThree.SolvePartTwo();
 
 var dayFour = new DayFour();
-dayFour.SolvePartOne();
+// dayFour.SolvePartOne();
+dayFour.SolvePartTwo();
