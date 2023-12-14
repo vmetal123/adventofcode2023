@@ -27,6 +27,26 @@ public class DaySix
         Console.WriteLine($"Result: {result}");
     }
 
+    public void SolvePartTwo()
+    {
+        var lines = File.ReadAllLines("day6.txt");
+
+        long time = LineToInt(lines[0]);
+        long distance = LineToInt(lines[1]);
+        long total = 0;
+        for (long i = 0; i < time; i++)
+        {
+            var rest = time - i;
+            var count = rest * i;
+            if (count > distance)
+            {
+                total++;
+            }
+        }
+
+        Console.WriteLine($"Result: {total}");
+    }
+
     IEnumerable<BoatMove> GetBoatMoves(string timeLine, string distanceLine)
     {
         var times = LineToIntList(timeLine);
@@ -65,6 +85,13 @@ public class DaySix
         }
 
         return numbers;
+    }
+
+    private long LineToInt(string line)
+    {
+        var numbersLine = line.Split(':', StringSplitOptions.TrimEntries)[1];
+        var numberAsString = numbersLine.Replace(" ", string.Empty);
+        return long.Parse(numberAsString);
     }
 }
 
