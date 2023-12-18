@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 
 namespace adventofcode2023;
 
@@ -50,7 +51,7 @@ public class DaySeven
             handsResults.Add(new HandResult(handType, cardsArray, bid));
         }
 
-        var orderedResults = handsResults.OrderBy(x => x, new CardComparer()).ToList();
+        var orderedResults = handsResults.OrderBy(x => x, new CardComparerWithJoker()).ToList();
         int result = 0;
         for (int i = 0; i < orderedResults.Count; i++)
         {
@@ -74,7 +75,7 @@ public class DaySeven
         var playInfo = line.Split(" ");
         var cards = playInfo[0].ToCharArray();
         var bid = int.Parse(playInfo[1]);
-        var jokersCount = cards.Where(x => x == 'J').Count();
+        var jokersCount = cards.Count(x => x == 'J');
 
         return (cards.ToList(), bid, jokersCount);
     }
@@ -96,7 +97,7 @@ public class DaySeven
     {
         var dict = GetDictionaryFromCardsBasedOnCardsStrength(cards);
 
-        var handType = GetGroupedCombinationFromGroupedCardsAndJokersCount(dict, jokersCount);
+        var handType = GetaHandTypeFromGroupedCardsAndJokersCount(dict, jokersCount);
 
         return (cards.ToArray(), handType);
     }
@@ -135,19 +136,20 @@ public class DaySeven
         return (one, two, three, four, five);
     }
 
-    HandType GetGroupedCombinationFromGroupedCardsAndJokersCount(Dictionary<char, int> groupedCards, int jokersCount)
+    HandType GetaHandTypeFromGroupedCardsAndJokersCount(Dictionary<char, int> groupedCards, int jokersCount)
     {
         if (groupedCards.Any(x => x.Value == (5 - jokersCount)))
         {
             return HandType.FiveOfAKind;
         }
 
-        if (groupedCards.Any(x => x.Value == (4 - jokersCount)))
+        if (groupedCards.Any(x => x.Value >= (4 - jokersCount)))
         {
             return HandType.FourOfAKind;
         }
 
-        if (groupedCards.Any(x => x.Value == 3 && x.Value == 2))
+        if (groupedCards.Any(x => x.Value == 3) && groupedCards.Any(x => x.Value == 2) ||
+        (groupedCards.Count(x => x.Value == 2) == 2 && jokersCount == 1))
         {
             return HandType.FullHouse;
         }
@@ -157,17 +159,12 @@ public class DaySeven
             return HandType.ThreeOfAKind;
         }
 
-        if (groupedCards.Count(x => x.Value == 2) == 2 && jokersCount == 1)
-        {
-            return HandType.FullHouse;
-        }
-
-        if (groupedCards.Count(x => x.Value == 2) == 2 && jokersCount == 0)
+        if (groupedCards.Count(x => x.Value == 2) == 2 )
         {
             return HandType.TwoPair;
         }
 
-        if (groupedCards.Any(x => x.Value == 2))
+        if (groupedCards.Any(x => x.Value == (2 - jokersCount)))
         {
             return HandType.OnePair;
         }
@@ -316,6 +313,81 @@ class CardComparer : IComparer<HandResult>
             'Q' => Strength.Q,
             'K' => Strength.K,
             'A' => Strength.A,
+            _ => throw new InvalidOperationException()
+        };
+    }
+}
+
+enum StrengthWithJoker
+{
+    two = 2,
+    three = 3,
+    four = 4,
+    five = 5,
+    six = 6,
+    seven = 7,
+    eight = 8,
+    nine = 9,
+    T = 10,
+    J = 1,
+    Q = 12,
+    K = 13,
+    A = 14
+}
+
+class CardComparerWithJoker : IComparer<HandResult>
+{
+    public int Compare(HandResult? x, HandResult? y)
+    {
+        if (x is null || y is null)
+        {
+            throw new InvalidOperationException();
+        }
+
+        if ((int)x.HandType > (int)y.HandType)
+        {
+            return 1;
+        }
+
+        if ((int)x.HandType < (int)y.HandType)
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < x.Cards.Length; i++)
+        {
+            StrengthWithJoker cardX = GetStrengthFromCard(x.Cards[i]);
+            StrengthWithJoker cardY = GetStrengthFromCard(y.Cards[i]);
+            if ((int)cardX > (int)cardY)
+            {
+                return 1;
+            }
+
+            if ((int)cardY > (int)cardX)
+            {
+                return -1;
+            }
+        }
+
+        return 0;
+    }
+    StrengthWithJoker GetStrengthFromCard(char card)
+    {
+        return card switch
+        {
+            '2' => StrengthWithJoker.two,
+            '3' => StrengthWithJoker.three,
+            '4' => StrengthWithJoker.four,
+            '5' => StrengthWithJoker.five,
+            '6' => StrengthWithJoker.six,
+            '7' => StrengthWithJoker.seven,
+            '8' => StrengthWithJoker.eight,
+            '9' => StrengthWithJoker.nine,
+            'T' => StrengthWithJoker.T,
+            'J' => StrengthWithJoker.J,
+            'Q' => StrengthWithJoker.Q,
+            'K' => StrengthWithJoker.K,
+            'A' => StrengthWithJoker.A,
             _ => throw new InvalidOperationException()
         };
     }
