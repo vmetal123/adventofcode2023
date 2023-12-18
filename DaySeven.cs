@@ -32,6 +32,34 @@ public class DaySeven
         Console.WriteLine($"Result: {result}");
     }
 
+    public void SolvePartTwo()
+    {
+        var lines = File.ReadAllLines("day7.txt");
+
+        var plays = new List<(List<char>, int, int)>();
+        foreach (var line in lines)
+        {
+            plays.Add(GetCardsBidAndJokersCount(line));
+        }
+
+        var handsResults = new List<HandResult>();
+
+        foreach (var (cards, bid, jokersCount) in plays)
+        {
+            (char[] cardsArray, HandType handType) = GetMatchesFromCardsAndJokersCount(cards, jokersCount);
+            handsResults.Add(new HandResult(handType, cardsArray, bid));
+        }
+
+        var orderedResults = handsResults.OrderBy(x => x, new CardComparer()).ToList();
+        int result = 0;
+        for (int i = 0; i < orderedResults.Count; i++)
+        {
+            result += (i + 1) * orderedResults[i].Bid;
+        }
+
+        Console.WriteLine($"Result: {result}");
+    }
+
     (List<char> cards, int bid) GetCardsAndBid(string line)
     {
         var playInfo = line.Split(" ");
@@ -39,6 +67,16 @@ public class DaySeven
         var bid = int.Parse(playInfo[1]);
 
         return (cards.ToList(), bid);
+    }
+
+    (List<char> cards, int bid, int jokersCount) GetCardsBidAndJokersCount(string line)
+    {
+        var playInfo = line.Split(" ");
+        var cards = playInfo[0].ToCharArray();
+        var bid = int.Parse(playInfo[1]);
+        var jokersCount = cards.Where(x => x == 'J').Count();
+
+        return (cards.ToList(), bid, jokersCount);
     }
 
     (char[] strength, HandType handType) GetMatchesFromCards(List<char> cards)
@@ -50,6 +88,15 @@ public class DaySeven
         var groupedCombination = GetGroupedCombinationFromGroupedCards(groupedCards);
 
         var handType = GetHandTypeFromGroupedCombination(groupedCombination);
+
+        return (cards.ToArray(), handType);
+    }
+
+    (char[] strength, HandType handType) GetMatchesFromCardsAndJokersCount(List<char> cards, int jokersCount)
+    {
+        var dict = GetDictionaryFromCardsBasedOnCardsStrength(cards);
+
+        var handType = GetGroupedCombinationFromGroupedCardsAndJokersCount(dict, jokersCount);
 
         return (cards.ToArray(), handType);
     }
@@ -88,6 +135,46 @@ public class DaySeven
         return (one, two, three, four, five);
     }
 
+    HandType GetGroupedCombinationFromGroupedCardsAndJokersCount(Dictionary<char, int> groupedCards, int jokersCount)
+    {
+        if (groupedCards.Any(x => x.Value == (5 - jokersCount)))
+        {
+            return HandType.FiveOfAKind;
+        }
+
+        if (groupedCards.Any(x => x.Value == (4 - jokersCount)))
+        {
+            return HandType.FourOfAKind;
+        }
+
+        if (groupedCards.Any(x => x.Value == 3 && x.Value == 2))
+        {
+            return HandType.FullHouse;
+        }
+
+        if (groupedCards.Any(x => x.Value == (3 - jokersCount)))
+        {
+            return HandType.ThreeOfAKind;
+        }
+
+        if (groupedCards.Count(x => x.Value == 2) == 2 && jokersCount == 1)
+        {
+            return HandType.FullHouse;
+        }
+
+        if (groupedCards.Count(x => x.Value == 2) == 2 && jokersCount == 0)
+        {
+            return HandType.TwoPair;
+        }
+
+        if (groupedCards.Any(x => x.Value == 2))
+        {
+            return HandType.OnePair;
+        }
+
+        return HandType.HighCard;
+    }
+
     HandType GetHandTypeFromGroupedCombination((int, int, int, int, int) combination)
     {
         return combination switch
@@ -120,6 +207,29 @@ public class DaySeven
         }
 
         return dict;
+    }
+
+    Dictionary<char, int> GetDictionaryFromCardsBasedOnCardsStrength(List<char> cards)
+    {
+        char[] cardsStrength = ['A', 'K', 'Q', 'T', '9', '8', '7', '6', '5', '4', '3', '2', 'J'];
+
+        var matches = new Dictionary<char, int>();
+
+        foreach (var card in cardsStrength)
+        {
+            matches.Add(card, 0);
+        }
+
+        foreach (var card in cards)
+        {
+            if (card == 'J')
+            {
+                continue;
+            }
+            matches[card]++;
+        }
+
+        return matches;
     }
 }
 
